@@ -15,7 +15,7 @@ export default class MenuSidePanel extends Container {
 
     constructor(public game: Game) {
         super();
-        const modeSection = new Graphics().rect(0, 275, 250, 275).fill(`rgb(25, 87, 86)`);
+        const modeSection = new Graphics().rect(0, 275, 250, 275).fill(`rgb(48,48,48)`);
         this.addChild(modeSection);
         Object.keys(this.radioButtons).forEach((key: any) => {
             const button = this.radioButtons[key] as RadioButton;

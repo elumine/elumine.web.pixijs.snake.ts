@@ -13,8 +13,8 @@ export default class RadioButton extends Container {
         public selected = false) {
             super();
             this.eventMode = 'static';
-            this.buttonImage = new Graphics().rect(0, 0, 30, 30).fill(`rgb(255, 255, 255)`);
-            this.buttonImageChecked = new Graphics().rect(0, 0, 30, 30).fill(`rgb(0, 117, 255)`);;
+            this.buttonImage = new Graphics().rect(0, 0, 30, 30).fill(`rgb(192, 192, 192)`);
+            this.buttonImageChecked = new Graphics().rect(0, 0, 30, 30).fill(`rgb(32,32,32)`);;
             this.checkedText = new Text({
                 text: '✓',
                 position: { x: 6, y: 3 },

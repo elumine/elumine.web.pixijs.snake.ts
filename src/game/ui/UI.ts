@@ -17,16 +17,16 @@ export default class UI extends Container {
         const menuWrapper = new Container();
         menuWrapper.position.set(660, 0);
         this.addChild(menuWrapper, this.loadingScreen);
-        const bg = new Graphics().rect(0, 0, 250, 660).fill(`rgb(7, 116, 130)`);
+        const bg = new Graphics().rect(0, 0, 250, 660).fill(`rgb(32,32,32)`);
         const headerText = new Text({
             text: 'Snake Game',
             position: { x: 25, y: 35 },
             style: {
-                fill: 'rgb(85, 210, 146)',
+                fill: 'rgb(192,192,192)',
                 fontSize: 36,
             },
         });
-        const bestSection = new Graphics().rect(0, 130, 250, 40).fill(`rgb(7, 94, 108)`);
+        const bestSection = new Graphics().rect(0, 130, 250, 40).fill(`rgb(48,48,48)`);
         const bestTitleText = new Text({
             text: 'Best:',
             position: { x: 25, y: 135 },
@@ -43,7 +43,7 @@ export default class UI extends Container {
                 fontSize: 24,
             },
         });
-        const scoreSection = new Graphics().rect(0, 200, 250, 40).fill(`rgb(7, 78, 92)`);
+        const scoreSection = new Graphics().rect(0, 200, 250, 40).fill(`rgb(48,48,48)`);
         const scoreTitleText = new Text({
             text: 'Score:',
             position: { x: 25, y: 205 },

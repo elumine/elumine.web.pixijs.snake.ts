@@ -10,7 +10,7 @@ export default class SquareButton extends Container {
         sizeX = 75, sizeY = 50) {
             super();
             this.eventMode = 'static';
-            this.buttonImage = new Graphics().rect(0, 0, sizeX, sizeY).fill(`rgb(36, 84, 80)`);
+            this.buttonImage = new Graphics().rect(0, 0, sizeX, sizeY).fill(`rgb(48,48,48)`);
             this.text = new Text({
                 text: displayText,
                 position: { x: 15, y: 10 },
