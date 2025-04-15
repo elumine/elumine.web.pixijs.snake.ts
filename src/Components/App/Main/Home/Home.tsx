@@ -5,7 +5,7 @@ import { ApplicationContext } from "../../../../Store/ApplicationStore.ts";
 import GameSession from "./GameSession.tsx";
 import './Home.scss';
 import { GameProperty } from "../../../../Store/game/GameConfig.ts";
-import { MaterialCard } from "../../../Common/material/Card.ts";
+import { MaterialCard } from "../../../Common/material/card.ts";
 import { MaterialStack } from "../../../Common/material/stack.ts";
 import { Button, Checkbox, Divider, FormControlLabel, FormGroup, Tooltip, Typography } from "@mui/material";
 import VideogameAssetIcon from '@mui/icons-material/VideogameAsset';
