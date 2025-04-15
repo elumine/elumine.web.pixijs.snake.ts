@@ -28,7 +28,7 @@ export default class SpriteManager {
     }
 
     async _loadSprite(name: string, fileName: string) {
-        const texture = await Assets.load( `art/${fileName}.png` );
+        const texture = await Assets.load( `/art/${fileName}.png` );
         this.texture[name] = texture;
         return texture;
     }

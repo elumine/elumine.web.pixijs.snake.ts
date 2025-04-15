@@ -38,7 +38,7 @@ export default class SoundManager {
     async _loadSfx(name: string, fileName: string) {
         return new Promise<Sound>((resolve) => {
             Sound.from({
-                url: `sfx/${fileName}.mp3`,
+                url: `/sfx/${fileName}.mp3`,
                 preload: true,
                 loaded: (error, sound) => {
                     resolve(sound);

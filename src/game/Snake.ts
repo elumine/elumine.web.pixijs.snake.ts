@@ -2,7 +2,7 @@ import { Container, PointData, Sprite } from "pixi.js";
 import { SnakeDirection, snakeDirectionToVector } from "./SnakeDirection";
 import { getContainersOverlap, getPointsOverlap } from "./Common";
 import Game from "./Game";
-import { GameProperty } from "./GameConfig";
+import { GameProperty } from "../Store/game/GameConfig";
 import SpriteManager from "./SpriteManager";
 
 export default class Snake extends Container {

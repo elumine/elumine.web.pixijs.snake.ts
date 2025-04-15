@@ -12,8 +12,8 @@ export default class Field extends Container {
     dynamicWalls = new Array<Wall>();
 
     constructor(
-        public size: PointData = { x: 20, y: 20 },
-        public tileResolution = 30) {
+        public size: PointData,
+        public tileResolution: number) {
             super();
             this.bounds = { x: size.x * tileResolution, y: size.y * tileResolution };
             for (let i = 0; i <= size.x; i++) {

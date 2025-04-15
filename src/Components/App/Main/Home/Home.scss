@@ -1,0 +1,64 @@
+.home {
+    position: fixed;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    .menu {
+        position: fixed;
+        left: 0;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        background: #111;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 2;
+        .menu-box {
+            margin: 0 50px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            .settings-form {
+                margin: 16px 0;
+            }
+            .start-button {
+                margin-top: 16px;
+            }
+        }
+        .hint-text {
+            opacity: .5;
+            margin: 16px 0;
+        }
+    }
+    .game {
+        position: fixed;
+        left: 0;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1;
+        &.visible {
+            z-index: 3;
+        }
+        #viewport {
+            width: 100%;
+            height: 100%;
+        }
+    }
+    .game-ended {
+        position: fixed;
+        left: 0;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 4;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        .menu-box {
+            max-width: inherit;
+        }
+    }
+}

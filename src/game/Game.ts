@@ -3,12 +3,12 @@ import Snake from "./Snake";
 import Food from "./Food";
 import Field from "./Field";
 import InputManager from "./InputManager";
-import UI from "./ui/UI";
-import GameScore from "./GameScore";
-import GameConfig, { GameProperty } from "./GameConfig";
+import GameConfig, { GameProperty } from "../Store/game/GameConfig";
 import { getPointsOverlap } from "./Common";
 import SoundManager from "./SoundManager";
 import SpriteManager from "./SpriteManager";
+import { Subject } from "rxjs";
+import { GameSession } from "../Store/GameStore";
 
 
 export enum GameStates {
@@ -17,44 +17,52 @@ export enum GameStates {
 
 export default class Game {
     app = new Application();
-    score = new GameScore();
-    config = new GameConfig();
+    config: GameConfig;
+    session: GameSession;
     inputManager = new InputManager(this);;
     foodList = new Array<Food>();
     field: Field;
     snake: Snake;
     state = GameStates.Menu;
-    ui: UI;
+    tickTime = 100;
     tickTimer: number;
+    onEnded = new Subject();
+    tileResolution = 20;
+    fieldSize = 20;
+    container: HTMLElement = null;
 
-    constructor() {
+    constructor(containerId: string) {
         console.info(this);
-        this._init();
+        this._init(containerId);
     }
 
-    async _init() {
-        const container = document.getElementById("container");
-        await this.app.init({ background: "#111111", resizeTo: window });
-        container.appendChild(this.app.canvas);
-        this.ui = new UI(this);
-        this.app.stage.addChild(this.ui);
+    async _init(containerId) {
+        this.container = document.getElementById(containerId);
+        await this.app.init({ background: "#111111" });
+        this.container.appendChild(this.app.canvas);
         window.addEventListener('resize', () => this._resizeAndCenterStage());
         this._resizeAndCenterStage();
+        this.inputManager.onInput.subscribe((input) => {
+            this.session.analytics.registerInput(input);
+        });
         //assets
-        this.ui.loadingScreen.visible = true;
         await SpriteManager.Instance.load();
         await SoundManager.Instance.load();
-        this.ui.loadingScreen.visible = false;
         //objects
-        this.field = new Field();
+        this.field = new Field({
+            x: this.fieldSize, y: this.fieldSize
+        }, this.tileResolution);
         this.app.stage.addChild(this.field);
-        this._updateUiScore();
-        this._openMenu();
     }
 
     _resizeAndCenterStage() {
+        const filedSizePx = this.tileResolution * (this.fieldSize + 2);
+        this.app.renderer.resize(this.container.clientWidth, this.container.clientHeight);
         this.app.stage.scale.set(1, 1);
-        const bounds = this.app.stage.getBounds();
+        const bounds = {
+            width: this.tileResolution * (this.fieldSize + 2),
+            height: this.tileResolution * (this.fieldSize + 2)
+        }
         const scaleW = this.app.renderer.width / bounds.width;
         const scaleH = this.app.renderer.height / bounds.height;
         const scale = Math.min(scaleW, scaleH);
@@ -66,39 +74,32 @@ export default class Game {
         this.app.stage.position.set(freeSpace.x/2, freeSpace.y/2);
     }
 
-    _exitGame() {
-        SoundManager.Instance.play('gameOver');
-        this._stopTick();
+    destroy() {
         this.app.destroy();
     }
 
-    _openMenu() {
-        SoundManager.Instance.play('menuSelect');
-        SoundManager.Instance.playMusic('menuMusic');
-        this._stopTick();
-        this.ui.showMenuScreen();
-        if (this.snake) this.snake.destroy();
-        this.foodList.forEach(f => {
-            f.removeListener('destroyed', this._onFoodConsumed);
-            f.destroy();
-        });
-        this.foodList = [];
-        this.field.clearDynamicWalls();
-    }
-
-    _startGame() {
+    startGame(session: GameSession) {
+        this.session = session;
+        this.config = session.gameConfig;
+        this.inputManager.setEnabled(true);
+        this._resizeAndCenterStage();
         SoundManager.Instance.play('gameStart');
         SoundManager.Instance.playMusic('gameMusic');
-        this.score.resetScore();
-        this._updateUiScore();
-        this.ui.showPlayScreen();
-        this.snake = new Snake(this, this.field.tileResolution);
+        if (this.snake) this.snake.destroy();
+        this.snake = new Snake(this, this.tileResolution);
         this.field.grid.addChild(this.snake);
         this._createFood();
         this._startTick();
     }
 
-    _startTick() { this.tickTimer = setInterval(() => this._tick(), this.config.gameSpeed); }
+    gameOver() {
+        this._stopTick();
+        this.onEnded.next(null);
+        this.inputManager.setEnabled(false);
+        SoundManager.Instance.play('gameOver');
+    }
+
+    _startTick() { this.tickTimer = setInterval(() => this._tick(), this.tickTime); }
     _stopTick() { clearInterval(this.tickTimer); }
 
     _tick() {
@@ -112,20 +113,19 @@ export default class Game {
         if (this.config.hasProperty(GameProperty.PortalMode)) this._spawnFoodItem();
     }
     _spawnFoodItem() {
-        const food = new Food(this._findPlaceToSpawnObject(), this.field.tileResolution);
+        const food = new Food(this._findPlaceToSpawnObject(), this.tileResolution);
         this.foodList.push(food);
         this.field.grid.addChild(food);
         return food;
     }
     _onFoodConsumed = (food: Food) => {
         SoundManager.Instance.play('foodConsume');
-        this.score.addScore();
-        this._updateUiScore();
+        this.session.analytics.addScore();
         if (this.config.hasProperty(GameProperty.WallsMode)) {
             this.field.spawnDynamicWall(this._findPlaceToSpawnObject(), {x: 1, y: 1});
         }
         if (this.config.hasProperty(GameProperty.SpeedMode)) {
-            this.config.incrementSpeed();
+            this._incrementSpeed();
             this._stopTick();
             this._startTick();
         }
@@ -146,20 +146,7 @@ export default class Game {
         const occupied = occupiedBySnake || occupiedDynamicWall || occupiedByFood;
         return occupied ? this._findPlaceToSpawnObject() : point;
     }
-    _updateUiScore() {
-        this.ui.setScore(this.score.currentScore, this.score.bestScore);
-    }
-
-    setGameState(state: GameStates) {
-        this.state = state;
-        switch (state) {
-            case GameStates.Menu: this._openMenu(); break;
-            case GameStates.Playing: this._startGame(); break;
-            case GameStates.Exited: this._exitGame(); break;
-        }
-    }
-    gameOver() {
-        SoundManager.Instance.play('gameOver');
-        this._openMenu();
+    _incrementSpeed() {
+        this.tickTime *= 0.9;
     }
 }
