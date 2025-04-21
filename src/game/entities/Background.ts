@@ -17,8 +17,8 @@ export class Background extends Container {
         const tilesize = 100;
         const tiles = [];
         const texture = await Assets.load('/art/tiles/tiles_magma.png');
-        for (let i = 0; i < w/tilesize; i++) {
-            for (let j = 0; j < h/tilesize; j++) {
+        for (let i = 0; i < w*2/tilesize; i++) {
+            for (let j = 0; j < h*2/tilesize; j++) {
                 const tile = new Sprite(texture);
                 tiles.push(tile);
                 tile.position.set(tilesize*i - w/2, tilesize*j - h/2);
