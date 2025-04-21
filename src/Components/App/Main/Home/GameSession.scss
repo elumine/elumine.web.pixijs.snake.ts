@@ -2,17 +2,19 @@
     display: flex;
     flex-wrap: nowrap;
     flex-direction: column;
-    align-items: flex-end;
+    overflow: auto;
     .charts {
         display: flex;
         flex-wrap: wrap;
         flex-direction: row;
         align-items: center;
         justify-content: center;
+        gap: 9%;
         .chart-section {
             display: flex;
             flex-direction: column;
             align-items: center;
+            width: 40%;
             .chart-container {
                 .MuiChartsAxis-root {
                     opacity: .5;
@@ -23,5 +25,9 @@
                 opacity: 0.5;
             }
         }
+    }
+    .start-button {
+        margin-top: 25px;
+        margin-bottom: 25px;
     }
 }

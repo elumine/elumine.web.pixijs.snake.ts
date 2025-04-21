@@ -1,28 +1,33 @@
 import { Sound } from "@pixi/sound";
 
 export interface SoundsMap {
-    foodConsume: Sound;
+    menuMusic: Sound;
     gameMusic: Sound;
     gameOver: Sound;
     gameStart: Sound;
-    menuMusic: Sound;
-    menuSelect: Sound;
-    mouseClick: Sound;
-    mouseHover: Sound;
+    coinPick: Sound;
+    itemPick: Sound;
+    death: Sound;
+    fireball1: Sound;
+    fireball2: Sound;
+    fireball3: Sound;
 }
 
 export default class SoundManager {
     static readonly Instance = new SoundManager();
-    sounds: SoundsMap = {} as SoundsMap;    // i'm tired :)
+    sounds: SoundsMap = {} as SoundsMap;
+    concurrencyMap = {};
     soundsLoadingConfig = {
-        foodConsume: 'food-consume',
+        menuMusic: 'menu-music',
         gameMusic: 'game-music',
         gameOver: 'game-over',
         gameStart: 'game-start',
-        menuMusic: 'menu-music',
-        menuSelect: 'menu-select',
-        mouseClick: 'mouse-click',
-        mouseHover: 'mouse-hover'
+        coinPick: 'coin-pick',
+        itemPick: 'food-consume',
+        death: 'death',
+        fireball1: 'fireball1',
+        fireball2: 'fireball2',
+        fireball3: 'fireball3',
     };
 
     constructor() {
@@ -54,10 +59,27 @@ export default class SoundManager {
         this.sounds[name].play();
     }
 
-    play(name: keyof SoundsMap) {
-        this.sounds[name].play();
+    play(name: keyof SoundsMap, concurrent = false) {
+        if (concurrent) {
+            this.stop(name);
+            this.sounds[name].play();
+        } else {
+            if (!this.concurrencyMap[name]) {
+                const sfx = this.sounds[name];
+                sfx.play();
+                this.concurrencyMap[name] = setTimeout(() => {
+                    this.concurrencyMap[name] = 0;
+                    sfx.stop()
+                }, this.sounds[name].duration * 1000);
+            }
+        }
     }
     stop(name: keyof SoundsMap) {
         this.sounds[name].stop();
+    }
+
+    playFireball() {
+        const name = `fireball${1 + Math.floor(Math.random() * 2)}`;
+        this.sounds[name].play();
     }
 }

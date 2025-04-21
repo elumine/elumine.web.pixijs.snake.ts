@@ -1,14 +1,18 @@
 import { Application, PointData } from "pixi.js";
-import Snake from "./Snake";
-import Food from "./Food";
-import Field from "./Field";
 import InputManager from "./InputManager";
-import GameConfig, { GameProperty } from "../Store/game/GameConfig";
-import { getPointsOverlap } from "./Common";
-import SoundManager from "./SoundManager";
-import SpriteManager from "./SpriteManager";
 import { Subject } from "rxjs";
 import { GameSession } from "../Store/GameStore";
+import { Character } from "./entities/Character";
+import { World } from "./World";
+import { PhysicsSystem } from "./systems/Physics";
+import { Enemy } from "./entities/Enemy";
+import { Background } from "./entities/Background";
+import { Arena } from "./entities/Arena";
+import { ChestsSystem } from "./systems/Chests";
+import { GameUI } from "./ui/GameUI";
+import { Player } from "./entities/Player";
+import { EnemiesSystem } from "./systems/Enemies";
+import { FiltersSystem, GameFiltersSystem } from "./systems/filters/FiltersSystem";
 
 
 export enum GameStates {
@@ -17,136 +21,95 @@ export enum GameStates {
 
 export default class Game {
     app = new Application();
-    config: GameConfig;
     session: GameSession;
-    inputManager = new InputManager(this);;
-    foodList = new Array<Food>();
-    field: Field;
-    snake: Snake;
-    state = GameStates.Menu;
-    tickTime = 100;
-    tickTimer: number;
+    world = new World(this);
+    background = new Background(this);
+    arena = new Arena(this);
+    player = new Player(this);
+    characters: Character[] = [];
+    physics = new PhysicsSystem(this);
+    chests = new ChestsSystem(this);
+    enemies = new EnemiesSystem(this);
+    filters = new GameFiltersSystem(this);
+    inputManager = new InputManager(this);
+    onInitialized = new Subject();
+    onStarted = new Subject();
     onEnded = new Subject();
-    tileResolution = 20;
-    fieldSize = 20;
     container: HTMLElement = null;
 
-    constructor(containerId: string) {
-        console.info(this);
-        this._init(containerId);
-    }
-
-    async _init(containerId) {
+    async init(containerId: string) {
+        console.group('Game.init', this);
         this.container = document.getElementById(containerId);
-        await this.app.init({ background: "#111111" });
+        await this.app.init({ backgroundColor: 0x000000, backgroundAlpha: 1 });
         this.container.appendChild(this.app.canvas);
+        await this.world.init(2000, 2000);
+        await this.background.init(0, 0, this.world.size.x*2, this.world.size.y*2);
+        this.world.viewport.addChild(this.background);
         window.addEventListener('resize', () => this._resizeAndCenterStage());
         this._resizeAndCenterStage();
-        this.inputManager.onInput.subscribe((input) => {
-            this.session.analytics.registerInput(input);
+        await this.arena.init(0, 0, this.world.size.x, this.world.size.y);
+        this.world.viewport.addChild(this.arena);
+        this.registerCharacter(this.player);
+        this.world.viewport.addChild(this.player);
+        this.world.viewport.follow(this.player, {
+            acceleration: 1,
+            speed: 10 * 0.016,
+            radius: 100
         });
-        //assets
-        await SpriteManager.Instance.load();
-        await SoundManager.Instance.load();
-        //objects
-        this.field = new Field({
-            x: this.fieldSize, y: this.fieldSize
-        }, this.tileResolution);
-        this.app.stage.addChild(this.field);
+        await this.chests.init();
+        await this.physics.init();
+        await this.enemies.init();
+        this.filters.target = this.world.viewport;
+        await this.filters.init();
+        await this.player.init(this.world.size.x/2, this.world.size.y/2, 100, 100);
+        this.player.onDeath.subscribe(() => {
+            this.world.viewport.follow(this.world.viewport)
+            this.endGame();
+        })
+        this.onInitialized.next(null);
+        console.groupEnd();
+    }
+
+    async destroy() {
+        console.group('Game.destroy');
+        await this.chests.destroy();
+        await this.physics.destroy();
+        await this.enemies.destroy();
+        await this.filters.destroy();
+        await this.world.destroy();
+        await this.background.destroy();
+        await this.arena.destroy();
+        await this.player.destroy();
+        this.container.removeChild(this.app.canvas);
+        this.app.destroy();
+        console.groupEnd();
+    }
+
+    async startGame(session: GameSession) {
+        this.onStarted.next(null);
+        // SoundManager.Instance.play('gameStart');
+        // SoundManager.Instance.playMusic('gameMusic');
+        this.session = session;
+        this.inputManager.setEnabled(true);
+    }
+
+    async endGame() {
+        this.onEnded.next(null);
+        // SoundManager.Instance.play('endGame');
+        this.inputManager.setEnabled(false);
+    }
+
+    registerCharacter(char: Character) {
+        this.characters.push(char);
+        char.on('destroyed', (char) => this.unregisterCharacter(char as Character))
+    }
+    
+    unregisterCharacter(char: Character) {
+        this.characters.splice(this.characters.indexOf(char), 1);
     }
 
     _resizeAndCenterStage() {
-        const filedSizePx = this.tileResolution * (this.fieldSize + 2);
         this.app.renderer.resize(this.container.clientWidth, this.container.clientHeight);
-        this.app.stage.scale.set(1, 1);
-        const bounds = {
-            width: this.tileResolution * (this.fieldSize + 2),
-            height: this.tileResolution * (this.fieldSize + 2)
-        }
-        const scaleW = this.app.renderer.width / bounds.width;
-        const scaleH = this.app.renderer.height / bounds.height;
-        const scale = Math.min(scaleW, scaleH);
-        this.app.stage.scale.set(scale, scale);
-        const freeSpace = {
-            x: this.app.renderer.width - bounds.width * scale,
-            y: this.app.renderer.height - bounds.height * scale,
-        }
-        this.app.stage.position.set(freeSpace.x/2, freeSpace.y/2);
-    }
-
-    destroy() {
-        this.app.destroy();
-    }
-
-    startGame(session: GameSession) {
-        this.session = session;
-        this.config = session.gameConfig;
-        this.inputManager.setEnabled(true);
-        this._resizeAndCenterStage();
-        SoundManager.Instance.play('gameStart');
-        SoundManager.Instance.playMusic('gameMusic');
-        if (this.snake) this.snake.destroy();
-        this.snake = new Snake(this, this.tileResolution);
-        this.field.grid.addChild(this.snake);
-        this._createFood();
-        this._startTick();
-    }
-
-    gameOver() {
-        this._stopTick();
-        this.onEnded.next(null);
-        this.inputManager.setEnabled(false);
-        SoundManager.Instance.play('gameOver');
-    }
-
-    _startTick() { this.tickTimer = setInterval(() => this._tick(), this.tickTime); }
-    _stopTick() { clearInterval(this.tickTimer); }
-
-    _tick() {
-        this.snake._update();
-    }
-
-    _createFood() {
-        this.foodList.forEach(f => f.destroy());
-        this.foodList = [];
-        this._spawnFoodItem();
-        if (this.config.hasProperty(GameProperty.PortalMode)) this._spawnFoodItem();
-    }
-    _spawnFoodItem() {
-        const food = new Food(this._findPlaceToSpawnObject(), this.tileResolution);
-        this.foodList.push(food);
-        this.field.grid.addChild(food);
-        return food;
-    }
-    _onFoodConsumed = (food: Food) => {
-        SoundManager.Instance.play('foodConsume');
-        this.session.analytics.addScore();
-        if (this.config.hasProperty(GameProperty.WallsMode)) {
-            this.field.spawnDynamicWall(this._findPlaceToSpawnObject(), {x: 1, y: 1});
-        }
-        if (this.config.hasProperty(GameProperty.SpeedMode)) {
-            this._incrementSpeed();
-            this._stopTick();
-            this._startTick();
-        }
-        if (this.config.hasProperty(GameProperty.PortalMode)) {
-            const otherFood = this.foodList.filter(f => f !== food)[0];
-            this.snake.head.position.set(otherFood.position.x, otherFood.position.y);
-        }
-        this._createFood();
-    }
-    _findPlaceToSpawnObject() {
-        const point: PointData = {
-            x: Math.floor(Math.random() * this.field.size.x), 
-            y: Math.floor(Math.random() * this.field.size.y)
-        }
-        const occupiedBySnake = this.snake.occupiesPoint(point);
-        const occupiedDynamicWall = this.field.dynamicWalls.some(wall => getPointsOverlap(wall.position, point));
-        const occupiedByFood = this.foodList.some(food => getPointsOverlap(food.position, point));
-        const occupied = occupiedBySnake || occupiedDynamicWall || occupiedByFood;
-        return occupied ? this._findPlaceToSpawnObject() : point;
-    }
-    _incrementSpeed() {
-        this.tickTime *= 0.9;
+        this.world.setViewSize(this.container.clientWidth, this.container.clientHeight);
     }
 }

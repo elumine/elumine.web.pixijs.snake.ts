@@ -18,7 +18,7 @@ root.render(
                 <Routes>
                     <Route path="*" element={<p>There's nothing here!</p>} />
                     <Route path='/' element={<App />}>
-                        <Route path='/' element={<Navigate to={'/main'} />} />
+                        <Route path='/' element={<Navigate to={'/main/home'} />} />
                         <Route path='main' element={<Main />}>
                             <Route path='home' element={<Home />}></Route>
                             <Route path='admin' element={<Admin />}></Route>

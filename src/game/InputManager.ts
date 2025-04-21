@@ -1,57 +1,67 @@
 import { Subject } from "rxjs";
 import Game from "./Game";
-import { SnakeDirection } from "./SnakeDirection";
+import { Point } from "pixi.js";
+import { Vector2 } from "./math/Vector2";
+
+export enum InputActions {
+    Up, Down, Left, Right, Fireball
+}
 
 export default class InputManager {
-    onInput = new Subject<SnakeDirection>();
+    onInput = new Subject<InputActions>();
+    movementInputOn = false;
+    movementInputDirection: InputActions;
 
     constructor(public game: Game) {}
 
     setEnabled(value) {
         if (value) {
-            window.addEventListener('keydown', this.onKeyDown);
-            window.addEventListener('mousemove', this.onClick);
+            this.movementInputOn = true;
+            window.addEventListener('mouseup', this.onMouseUp);
+            window.addEventListener('mousedown', this.onMouseDown);
+            window.addEventListener('mousemove', this.onMouseMove);
+            this.game.player.once('destroyed', () => this.setEnabled(false));
         } else {
-            window.removeEventListener('keydown', this.onKeyDown);
-            window.removeEventListener('mousemove', this.onClick);
+            this.movementInputOn = false;
+            window.removeEventListener('mouseup', this.onMouseUp);
+            window.removeEventListener('mousedown', this.onMouseDown);
+            window.removeEventListener('mousemove', this.onMouseMove);
         }
     }
 
-    onClick = (event: MouseEvent) => {
-        const direction = (() => {
-            const w = window.innerWidth, h = window.innerHeight;
-            const x = (event.x - w/2) / w, y = (event.y - h/2) / h;
-            var angle = Math.atan2(x, y);
-            var degrees = 180*angle/Math.PI;
-            // console.log(
-            //     'event', event.x, event.y,
-            //     'size', w, h,
-            //     'x', x, 'y', y, 'a', angle, 'd', degrees);
-            if (degrees < 135 && degrees > 45) {
-                return SnakeDirection.Right;
-            } else if (degrees > -135 && degrees < -45) {
-                return SnakeDirection.Left;
-            } else if (y < 0) {
-                return SnakeDirection.Up;
-            } else {
-                return SnakeDirection.Down;
+    onMouseMove = (event: MouseEvent) => {
+        if (this.movementInputOn) {
+            const x = event.x, y = event.y;
+            const playerScreenSpace = this.game.world.viewport.toScreen(this.game.player.position.x, this.game.player.position.y);
+            const playerScreenSpaceRelative = new Point(x - playerScreenSpace.x, y - playerScreenSpace.y);
+            const playerScreenSpaceRelativeLength = Vector2.Length(playerScreenSpaceRelative);
+            const movemeInputScale = playerScreenSpaceRelativeLength / 1000;
+            const playerScreenSpaceRelativeNormalized = Vector2.Normalize(playerScreenSpaceRelative);
+            this.game.player.setMovementInput(playerScreenSpaceRelativeNormalized.x, playerScreenSpaceRelativeNormalized.y, movemeInputScale);
+            const mouseInputDirection = ((): InputActions => {
+                const x = playerScreenSpaceRelativeNormalized.x, y = playerScreenSpaceRelativeNormalized.y;
+                if (x < 0.33) return InputActions.Left;
+                if (x > 0.66) return InputActions.Right;
+                if (y > 0.5) return InputActions.Up;
+                return InputActions.Down;
+            })();
+            if (mouseInputDirection !== this.movementInputDirection) {
+                this.movementInputDirection = mouseInputDirection;
+                this.onInput.next(this.movementInputDirection);
             }
-        })();
-        // console.log(direction);
-        this.game.snake.setDirection(direction);
-        this.onInput.next(direction);
+        }
     }
     
-    onKeyDown = (event) => {
-        const direction = (() => {
-            switch(event.key) {
-                case 'ArrowUp': return SnakeDirection.Up;
-                case 'ArrowDown': return SnakeDirection.Down;
-                case 'ArrowLeft': return SnakeDirection.Left;
-                case 'ArrowRight': return SnakeDirection.Right;
-            }
-        })();
-        this.game.snake.setDirection(direction);
-        this.onInput.next(direction);
+    onMouseDown = (event: MouseEvent) => {
+        const lmb = event.which === 1;
+        if (lmb) {
+            this.game.player.castFireball();
+            this.onInput.next(InputActions.Fireball);
+        }
+        event.preventDefault();
+    }
+    
+    onMouseUp = (event: MouseEvent) => {
+        event.preventDefault();
     }
 }

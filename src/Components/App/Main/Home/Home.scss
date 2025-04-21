@@ -4,6 +4,7 @@
     top: 0;
     right: 0;
     bottom: 0;
+
     .menu {
         position: fixed;
         left: 0;
@@ -15,23 +16,28 @@
         justify-content: center;
         align-items: center;
         z-index: 2;
+
         .menu-box {
             margin: 0 50px;
             display: flex;
             flex-direction: column;
             align-items: center;
+
             .settings-form {
                 margin: 16px 0;
             }
+
             .start-button {
                 margin-top: 16px;
             }
         }
+
         .hint-text {
             opacity: .5;
             margin: 16px 0;
         }
     }
+
     .game {
         position: fixed;
         left: 0;
@@ -39,14 +45,192 @@
         right: 0;
         bottom: 0;
         z-index: 1;
+
         &.visible {
             z-index: 3;
         }
+
         #viewport {
+            position: absolute;
             width: 100%;
             height: 100%;
+            z-index: 1;
+        }
+
+        #physics-canvas {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            opacity: 0.5;
+        }
+
+        .game-ui {
+            position: fixed;
+            left: 0;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 3;
+
+            .gold {
+                position: absolute;
+                left: 50px;
+                top: 50px;
+                display: flex;
+                align-items: center;
+
+                .icon {
+                    width: 75px;
+                    height: 75px;
+                    background-image: url(/art/chests/goldCoin5.png);
+                    background-size: 100% 100%;
+                }
+
+                .text {
+                    margin-left: 10px;
+                    font-size: 48px;
+                    color: #ffeb00;
+                    text-shadow: 1px 1px 5px #000;
+                }
+            }
+
+            .arena-timer {
+                position: absolute;
+                right: 50px;
+                top: 50px;
+                display: flex;
+                align-items: center;
+
+                .icon {
+                    width: 75px;
+                    height: 75px;
+                    background-image: url(/art/chests/goldCoin5.png);
+                    background-size: 100% 100%;
+                }
+
+                .text {
+                    margin-right: 10px;
+                    font-size: 32px;
+                    color: #fff;
+                    text-shadow: 1px 1px 5px #000;
+                }
+            }
+
+            .bottom-bar {
+                position: absolute;
+                left: 50%;
+                bottom: 0;
+                width: 500px;
+                margin-left: -250px;
+                height: 100px;
+
+                .layer {
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    right: 0;
+                    bottom: 0;
+
+                    &.first {
+                        background: url(/art/ui/hud_layer1.png);
+                        background-size: 100% 100%;
+                        z-index: 1;
+                    }
+
+                    &.second {
+                        z-index: 2;
+
+                        .bar {
+                            position: absolute;
+                            overflow: hidden;
+                            border-radius: 100%;
+
+                            &.stat {
+                                width: 110px;
+                                height: 110px;
+
+                                .outer-ring {
+                                    position: absolute;
+                                    width: 120%;
+                                    height: 120%;
+                                    left: -10%;
+                                    top: -10%;
+                                    z-index: 3;
+                                    background-image: url(/art/ui/bar-ring.png);
+                                    background-size: 100% 100%;
+                                }
+
+                                .bar-bg {
+                                    position: absolute;
+                                    width: 100%;
+                                    height: 100%;
+                                    z-index: 1;
+                                    background-image: url(/art/ui/bar-bg.png);
+                                    background-size: 100% 100%;
+                                }
+
+                                .inner-sphere {
+                                    position: absolute;
+                                    width: 100%;
+                                    height: 100%;
+                                    z-index: 2;
+                                    background-size: 100% 100%;
+                                    border-radius: 100%;
+                                    transition: all 0.2s ease-in-out;
+                                }
+
+                                &.health {
+                                    left: 70px;
+                                    bottom: 5px;
+
+                                    .inner-sphere {
+                                        background-image: url(/art/ui/hp-bg.png);
+                                    }
+                                }
+
+                                &.mana {
+                                    right: 70px;
+                                    bottom: 5px;
+                                    margin-left: 100px;
+
+                                    .inner-sphere {
+                                        background-image: url(/art/ui/mana-bg.png);
+                                    }
+                                }
+                            }
+
+                            &.spell {
+                                width: 60px;
+                                height: 60px;
+                                bottom: 0px;
+                                background-image: url(/art/ui/firebolt-icon.png);
+                                background-size: 100% 100%;
+
+                                .cooldown-overlay {
+                                    position: absolute;
+                                    width: 100%;
+                                    height: 100%;
+                                    background: rgba(0, 0, 0, 0.5);
+                                }
+
+                                &.fireball {
+                                    left: 220px;
+                                }
+                            }
+                        }
+                    }
+
+                    &.third {
+                        background: url(/art/ui/hud_layer2.png);
+                        background-size: 100% 100%;
+                        z-index: 3;
+                    }
+                }
+            }
         }
     }
+
     .game-ended {
         position: fixed;
         left: 0;
@@ -57,8 +241,44 @@
         display: flex;
         justify-content: center;
         align-items: center;
+
         .menu-box {
             max-width: inherit;
         }
+    }
+
+    .black-screen {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        z-index: 4;
+        background: black;
+
+        &.visible {
+            animation: fade-in 500ms both;
+        }
+
+        &.hidden {
+            animation: fade-out 500ms both;
+        }
+    }
+}
+
+@keyframes fade-in {
+    0% {
+        opacity: 0;
+        display: block;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+@keyframes fade-out {
+    0% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+        display: none;
     }
 }
