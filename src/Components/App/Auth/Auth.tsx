@@ -4,7 +4,7 @@ import { observer } from "mobx-react";
 import { ApplicationContext } from "../../../Store/ApplicationStore";
 import { Typography, Button, TextField } from '@mui/material';
 import Box from '@mui/material/Box';
-import { GoogleLogin } from '@react-oauth/google';
+import { CredentialResponse, GoogleLogin } from '@react-oauth/google';
 import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Divider from '@mui/material/Divider';
@@ -48,6 +48,10 @@ export default observer(() => {
       await store.session.login(data.username, data.password);
       navigate('/main/home');
     }
+  }
+  function googleLogin(credentialResponse: CredentialResponse) {
+    store.session.setSession(credentialResponse.clientId);
+    navigate('/main/home');
   }
 
   return (
@@ -116,7 +120,7 @@ export default observer(() => {
         <Divider>or</Divider>
         <GoogleLogin
           onSuccess={credentialResponse => {
-            login();
+            googleLogin(credentialResponse);
           }}
           onError={() => {}}
         />
